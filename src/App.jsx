@@ -1,6 +1,7 @@
-import { useState , useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
 import Taskitem from "./Taskitem";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 function App() {
   const [newTask, setNewTask] = useState("");
@@ -11,11 +12,8 @@ function App() {
 
   const [reminderTime, setReminderTime] = useState("");
 
-  useEffect(() => {
-  if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-  }
-}, []);
+ 
+
 
   function startListening() {
   const SpeechRecognition =
@@ -37,21 +35,40 @@ function App() {
 
 
 
-  function addTask() {
+async function showNotification(task, time) {
+  const targetTime = new Date(time).getTime();
+
+  if (targetTime > Date.now()) {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id:  Math.floor(Math.random() * 1000),
+          title: "Task Reminder",
+          body: task,
+          schedule: { at: new Date(time) },
+        },
+      ],
+    });
+  } else {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id:  Math.floor(Math.random() * 1000),
+          title: "Task Added",
+          body: task,
+        },
+      ],
+    });
+  }
+}
+
+function addTask() {
   if (newTask.trim() === "") return;
 
   setMyTasks((prev) => [...prev, newTask]);
 
   if (reminderTime) {
-    const delay = new Date(reminderTime).getTime() - Date.now();
-
-    if (delay > 0) {
-      setTimeout(() => {
-        new Notification("Task Reminder ", {
-          body: newTask,
-        });
-      }, delay);
-    }
+    showNotification(newTask, reminderTime);
   }
 
   setNewTask("");
@@ -82,14 +99,15 @@ function App() {
             <input type="datetime-local" className="form-control mt-2 w-50" value={reminderTime}
                       onChange={(e) => setReminderTime(e.target.value)}/>
 
-               <label >Enter the Input</label>
+               <label >Enter Task</label>
           </div>
                 <button className="btn btn-danger" id="btn"  onClick={addTask}>+ </button>
                  <button className="btn btn-primary" onClick={startListening} > 🎤  </button>
 
         </div>
 
-
+         
+          
        
 
         <h5 className="mt-4"> <b>  To Be Completed</b> </h5>
